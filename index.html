@@ -72,6 +72,12 @@
         </button>
       </div>
     </div>
+    
+    <!-- Sortering -->
+    <div class="flex items-center justify-end gap-2 mb-8 pr-2" style="margin-top: -1rem;">
+      <input type="checkbox" id="sortRecent" onchange="renderItems()" class="w-4 h-4 cursor-pointer rounded border-gray-300" style="accent-color: #203823;">
+      <label for="sortRecent" class="text-sm font-medium cursor-pointer select-none" style="color: #203823; opacity: 0.85;">Visa senaste föremål</label>
+    </div>
 
     <!-- Status: Laddar -->
     <div id="loading" class="flex flex-col items-center justify-center py-20" style="color: #203823;">
@@ -187,6 +193,12 @@
         if (currentFilter === 'sodervarn') matchesLoc = item.isSodervarn;
         return matchesSearch && matchesLoc;
       });
+
+      // Sortera efter datum (nyast först) om rutan är ikryssad
+      const sortRecent = document.getElementById('sortRecent').checked;
+      if (sortRecent) {
+        filtered.sort((a, b) => b.dateAdded - a.dateAdded);
+      }
 
       if (filtered.length === 0) {
         container.classList.add('hidden');
