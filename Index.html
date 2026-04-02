@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Grundläggande inställningar för typsnitt och färger */
+    body { 
+      font-family: "Myriad Pro", Arial, sans-serif; 
+      background-color: #F6F6EF; 
+      color: #203823; 
+    }
+    .font-garamond { 
+      font-family: "Adobe Garamond Pro", Garamond, serif; 
+    }
+    .card-hover:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+    }
+    /* Göm scrollbar för en snyggare filtermeny på mobilen */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen pb-4">
+
+  <!-- Header -->
+  <header class="shadow-md" style="background-color: #203823; color: #FFFFFF;">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-box-open text-3xl" style="color: #D1E0D7;"></i>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight font-garamond">
+          Teknoteket Inventering
+        </h1>
+      </div>
+      <p class="mt-2 max-w-2xl" style="color: #D1E0D7;">
+        Sök och filtrera bland lärverktyg och hjälpmedel som finns tillgängliga på våra skolor.
+      </p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    
+    <!-- Sök och Filter -->
+    <div class="rounded-xl shadow-sm p-4 md:p-6 mb-8 flex flex-col md:flex-row gap-4" style="background-color: #FFFFFF; border: 1px solid #D1E0D7;">
+      
+      <!-- Sökfält -->
+      <div class="relative flex-1">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <i class="fas fa-search" style="color: #203823; opacity: 0.5;"></i>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="block w-full pl-10 pr-3 py-3 rounded-lg sm:text-sm transition-colors focus:outline-none" 
+          style="background-color: #F6F6EF; border: 1px solid #D1E0D7; color: #203823;"
+          placeholder="Sök på föremål eller beskrivning..."
+        >
+      </div>
+      
+      <!-- Filterknappar -->
+      <div class="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+        <button onclick="setFilter('all')" id="btn-all" class="filter-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">
+          Alla platser
+        </button>
+        <button onclick="setFilter('kungsgatan')" id="btn-kungsgatan" class="filter-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">
+          Endast Kungsgatan
+        </button>
+        <button onclick="setFilter('sodervarn')" id="btn-sodervarn" class="filter-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">
+          Endast Södervärn
+        </button>
+      </div>
+    </div>
+
+    <!-- Status: Laddar -->
+    <div id="loading" class="flex flex-col items-center justify-center py-20" style="color: #203823;">
+      <i class="fas fa-spinner fa-spin text-4xl mb-4" style="color: #203823;"></i>
+      <p class="text-lg">Laddar katalog...</p>
+    </div>
+    
+    <!-- Status: Inga resultat -->
+    <div id="no-results" class="hidden border rounded-lg p-12 flex flex-col items-center text-center" style="background-color: #FFFFFF; border-color: #D1E0D7; color: #203823;">
+      <i class="fas fa-box text-5xl mb-3 opacity-50"></i>
+      <h3 class="text-lg font-medium font-garamond">Inga verktyg hittades</h3>
+      <p class="mt-1 opacity-80">Vi kunde inte hitta något som matchade din sökning, eller så är kalkylarket tomt.</p>
+      <button onclick="document.getElementById('searchInput').value=''; setFilter('all');" class="mt-4 font-medium hover:opacity-70 transition-opacity" style="color: #203823; text-decoration: underline;">
+        Rensa filter
+      </button>
+    </div>
+
+    <!-- Rutnät för kort -->
+    <div id="grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
+
+  </main>
+
+  <script>
+    let allItems = [];
+    let currentFilter = 'all';
+    
+    // --- BYT UT DENNA LÄNK MOT DIN PUBLICERADE APPS SCRIPT URL ---
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwcQJTrsjxvOG5TJ8Ly0z47Xin-h2h_TiZbWGRSKrSS1imgNpEqL7hbejoK_hB2POZt/exec';
+
+    // Starta hämtning direkt när sidan laddas
+    window.onload = async function() {
+      if (API_URL === 'KLISTRA_IN_DIN_APPS_SCRIPT_URL_HÄR') {
+        showError({ message: "Glöm inte att byta ut API_URL i koden mot din riktiga Google Apps Script-länk!" });
+        return;
+      }
+
+      try {
+        // Vi hämtar datan direkt från ditt API (Kod.gs)
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error(`Nätverksfel: ${response.status} ${response.statusText}`);
+        }
+        
+        const dataArray = await response.json();
+        processData(dataArray);
+
+      } catch (error) {
+        showError(error);
+      }
+      
+      document.getElementById('searchInput').addEventListener('input', renderItems);
+      updateButtonStyles('all');
+    };
+
+    function showError(error) {
+      document.getElementById('loading').innerHTML = `
+        <div class="rounded-lg p-6 flex flex-col items-center text-center" style="background-color: #FFFFFF; border: 1px solid #D1E0D7; color: #203823;">
+          <i class="fas fa-bug text-4xl mb-2 text-red-600"></i>
+          <p class="font-semibold text-lg">Kunde inte hämta data.</p>
+          <p class="mt-2 text-sm font-mono bg-gray-100 p-3 rounded text-left border border-gray-200 w-full overflow-hidden break-words text-red-700">
+            ${error.message || error}
+          </p>
+        </div>
+      `;
+    }
+
+    // Denna funktion tar nu emot en ren och färdig array med objekt
+    function processData(dataArray) {
+      // Filtrera bort rubrikraden ifall den följer med från databasen
+      allItems = dataArray.filter(item => item.title && item.title.trim().toLowerCase() !== 'föremål');
+      
+      document.getElementById('loading').classList.add('hidden');
+      
+      if (allItems.length === 0) {
+        document.getElementById('no-results').classList.remove('hidden');
+      } else {
+        document.getElementById('grid-container').classList.remove('hidden');
+        renderItems();
+      }
+    }
+
+    function updateButtonStyles(activeFilter) {
+      const activeStyle = "background-color: #203823; color: #FFFFFF; border: 1px solid #203823;";
+      const inactiveStyle = "background-color: #F6F6EF; color: #203823; border: 1px solid #D1E0D7;";
+      
+      document.getElementById('btn-all').style.cssText = activeFilter === 'all' ? activeStyle : inactiveStyle;
+      document.getElementById('btn-kungsgatan').style.cssText = activeFilter === 'kungsgatan' ? activeStyle : inactiveStyle;
+      document.getElementById('btn-sodervarn').style.cssText = activeFilter === 'sodervarn' ? activeStyle : inactiveStyle;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      updateButtonStyles(filter);
+      renderItems();
+    }
+
+    function renderItems() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const container = document.getElementById('grid-container');
+      const noResults = document.getElementById('no-results');
+      
+      container.innerHTML = '';
+      
+      const filtered = allItems.filter(item => {
+        const matchesSearch = 
+          item.title.toLowerCase().includes(searchTerm) || 
+          item.description.toLowerCase().includes(searchTerm) ||
+          (item.tags && item.tags.toLowerCase().includes(searchTerm));
+          
+        let matchesLoc = true;
+        if (currentFilter === 'kungsgatan') matchesLoc = item.isKungsgatan;
+        if (currentFilter === 'sodervarn') matchesLoc = item.isSodervarn;
+        return matchesSearch && matchesLoc;
+      });
+
+      if (filtered.length === 0) {
+        container.classList.add('hidden');
+        noResults.classList.remove('hidden');
+        return;
+      } else {
+        container.classList.remove('hidden');
+        noResults.classList.add('hidden');
+      }
+
+      filtered.forEach(item => {
+        const badges = [];
+        if (item.isKungsgatan) badges.push(`<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #D1E0D7; color: #203823;"><i class="fas fa-map-marker-alt"></i> Kungsgatan</span>`);
+        if (item.isSodervarn) badges.push(`<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold" style="background-color: #FFFFFF; color: #203823; border: 1px solid #203823;"><i class="fas fa-map-marker-alt"></i> Södervärn</span>`);
+        if (!item.isKungsgatan && !item.isSodervarn) badges.push(`<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium" style="background-color: #F6F6EF; color: #203823; opacity: 0.7;">Plats saknas</span>`);
+        
+        const imgHtml = item.imageUrl && item.imageUrl !== '' 
+          ? `<img src="${item.imageUrl}" class="max-h-full max-w-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null; this.outerHTML='<div class=\\'flex flex-col items-center\\' style=\\'color: #203823; opacity: 0.4;\\'><i class=\\'fas fa-image-slash text-4xl mb-2\\'></i><span class=\\'text-xs\\'>Kunde inte ladda bild</span></div>';">`
+          : `<div class="flex flex-col items-center" style="color: #203823; opacity: 0.4;"><i class="fas fa-box text-4xl mb-2"></i><span class="text-xs">Ingen bild</span></div>`;
+
+        const safeDescription = item.description ? item.description.replace(/"/g, '&quot;') : '';
+
+        // Skapar kategoriringen (A eller B) om en sådan existerar i raden
+        const categoryHtml = item.category 
+          ? `<div class="absolute bottom-4 right-4 w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold" style="border-color: #D1E0D7; color: #203823; opacity: 0.6;" title="Kategori ${item.category}">${item.category}</div>`
+          : '';
+
+        const card = `
+          <div class="rounded-xl shadow-sm border overflow-hidden card-hover transition-all flex flex-col group relative" style="background-color: #FFFFFF; border-color: #D1E0D7;">
+            <div class="h-48 flex items-center justify-center p-4 border-b relative" style="background-color: #F6F6EF; border-color: #D1E0D7;">
+              ${imgHtml}
+            </div>
+            <div class="p-5 flex flex-col flex-grow">
+              <h3 class="text-lg font-bold mb-2 leading-tight font-garamond" style="color: #203823;">${item.title}</h3>
+              <div class="flex flex-wrap gap-2 mb-3">${badges.join('')}</div>
+              <div class="mt-auto pt-3 border-t pr-8" style="border-color: #D1E0D7;">
+                <p class="text-sm line-clamp-3" style="color: #203823; opacity: 0.85;" title="${safeDescription}">${item.description || '<span class="italic opacity-60">Ingen beskrivning tillgänglig.</span>'}</p>
+              </div>
+            </div>
+            ${categoryHtml}
+          </div>
+        `;
+        container.innerHTML += card;
+      });
+    }
+  </script>
+</body>
+</html>
