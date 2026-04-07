@@ -104,10 +104,10 @@
     let allItems = [];
     let currentFilter = 'all';
     
-    // --- BYT UT DENNA LÄNK MOT DIN PUBLICERADE APPS SCRIPT URL ---
+    // --- Publicerat App script URL ---
     const API_URL = 'https://script.google.com/macros/s/AKfycbwcQJTrsjxvOG5TJ8Ly0z47Xin-h2h_TiZbWGRSKrSS1imgNpEqL7hbejoK_hB2POZt/exec';
 
-    // Starta hämtning direkt när sidan laddas
+    // Starta hämtning direkt när sidan laddas + felmeddelade om app script url inte fyllt it
     window.onload = async function() {
       if (API_URL === 'KLISTRA_IN_DIN_APPS_SCRIPT_URL_HÄR') {
         showError({ message: "Glöm inte att byta ut API_URL i koden mot din riktiga Google Apps Script-länk!" });
@@ -115,7 +115,7 @@
       }
 
       try {
-        // Vi hämtar datan direkt från ditt API (Kod.gs)
+        // Hämtar datan direkt från API (Kod.gs)
         const response = await fetch(API_URL);
         
         if (!response.ok) {
